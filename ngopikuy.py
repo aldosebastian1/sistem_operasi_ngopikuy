@@ -983,7 +983,7 @@ def main():
     if username is None:
         return
 
-    print(f"\n☕ Selamat datang di Sistem Operasi Ngopikuy!")
+    print(f"\n Selamat datang di Sistem Operasi Ngopikuy!")
 
     # Header awal (langsung lanjut ke menu tanpa daftar produk/stok)
     print("\n" + "="*70)
