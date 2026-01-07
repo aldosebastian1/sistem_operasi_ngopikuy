@@ -973,7 +973,6 @@ def generate_id_pembelian(counter):
 
 
 # ===============================
-=======
     print("1. Tambah Stok Bahan")
     print("2. Lihat Stok Bahan")
     print("3. Tambah Produk")
@@ -998,7 +997,7 @@ def main():
     if username is None:
         return
 
-    print(f"\n☕ Selamat datang di Sistem Operasi Ngopikuy!")
+    print(f"\n Selamat datang di Sistem Operasi Ngopikuy!")
 
     # Header awal (langsung lanjut ke menu tanpa daftar produk/stok)
     print("\n" + "="*70)
