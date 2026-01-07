@@ -623,8 +623,8 @@ def main():
                 inventory.add_stock(bahan, jumlah)
                 print(f"✓ Berhasil menambah {jumlah} {bahan}")
                 inventory.show_stock_table()
-            except ValueError as e:
-                print(f"❌ Error: {e}")
+            except ValueError:
+                print("❌ ERROR: Jumlah Harus Berupa Angka!")
 
         # ===============================
         # 2. LIHAT STOK
@@ -664,7 +664,7 @@ def main():
                 continue
 
             recipe = {}
-            print("\nTambah Resep (contoh: Bubuk Kopi = 10 gram Espresso)")
+            print("\nTambah Resep (CONTOH: Bubuk Kopi = 10 gram Espresso)")
             print("Ketik 'stop' jika selesai")
 
             while True:
@@ -815,12 +815,12 @@ def main():
                     try:
                         inventory.add_stock(nama_bahan, jumlah)
                         subtotal = jumlah * harga_satuan
-                        print(f"✓ {nama_bahan} x{jumlah} = Rp {subtotal:,} ditambahkan")
+                        print(f"✓ {nama_bahan} x {jumlah} = Rp {subtotal:,} ditambahkan")
                     except ValueError as e:
                         print(f"⚠ Warning: {e}")
                         
                 except ValueError:
-                    print("❌ Input tidak valid! Masukkan angka yang benar.")
+                    print("❌ ERROR: Input Harus Berupa Angka!")
             
             # Konfirmasi dan cetak struk pembelian
             if transaksi_beli.daftar_item:
