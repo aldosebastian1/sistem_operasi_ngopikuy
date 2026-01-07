@@ -973,8 +973,22 @@ def generate_id_pembelian(counter):
 
 
 # ===============================
+    print("1. Tambah Stok Bahan")
+    print("2. Lihat Stok Bahan")
+    print("3. Tambah Produk")
+    print("4. Lihat Daftar Produk")
+    print("5. Cari Bahan")
+    print("6. Transaksi Penjualan Produk")
+    print("7. Transaksi Pembelian Bahan (Supplier)")
+    print("8. Hapus Produk")
+    print("9. Laporan & Analisis")
+    print("10. Keluar")
+    print("="*70)
+
+
+# ================================
 # FUNGSI UTAMA
-# ===============================
+# ================================
 def main():
     """Fungsi utama untuk menjalankan sistem"""
     global riwayat_transaksi
@@ -1002,6 +1016,17 @@ def main():
         # ===============================
         if pilihan == "1":
             product_manager.show_products()
+            print("\n" + "="*60)
+            print("RESTOCK BAHAN - NGOPIKUY".center(60))
+            print("="*60)
+            try:
+                bahan = input("Nama bahan: ")
+                jumlah = int(input("Jumlah: "))
+                inventory.add_stock(bahan, jumlah)
+                print(f"✓ Berhasil menambah {jumlah} {bahan}")
+                inventory.show_stock_table()
+            except ValueError:
+                print("❌ ERROR: Jumlah Harus Berupa Angka!")
 
         # ===============================
         # 2. LIHAT STOK BAHAN
@@ -1115,7 +1140,7 @@ def main():
                 continue
 
             recipe = {}
-            print("\nTambah Resep (contoh: Bubuk Kopi = 10 gram Espresso)")
+            print("\nTambah Resep (CONTOH: Bubuk Kopi = 10 gram Espresso)")
             print("Ketik 'stop' jika selesai")
 
             while True:
@@ -1328,12 +1353,12 @@ def main():
                     try:
                         inventory.add_stock(nama_bahan, jumlah, username)
                         subtotal = jumlah * harga_satuan
-                        print(f"✓ {nama_bahan} x{jumlah} = Rp {subtotal:,} ditambahkan")
+                        print(f"✓ {nama_bahan} x {jumlah} = Rp {subtotal:,} ditambahkan")
                     except ValueError as e:
                         print(f"⚠ Warning: {e}")
                         
                 except ValueError:
-                    print("❌ Input tidak valid! Masukkan angka yang benar.")
+                    print("❌ ERROR: Input Harus Berupa Angka!")
             
             # Konfirmasi dan cetak struk pembelian
             if transaksi_beli.daftar_item:
