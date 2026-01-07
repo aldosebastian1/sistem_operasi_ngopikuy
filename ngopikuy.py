@@ -7,6 +7,12 @@ import msvcrt
 
 
 # =========================
+# KONSTANTA SISTEM
+# =========================
+PPN_RATE = 0.11  # PPN 11% sesuai aturan Indonesia
+
+
+# =========================
 # LOGIN SINGLE ADMIN (WINDOWS)
 # =========================
 ADMIN_USERNAME = "admin"
@@ -126,25 +132,53 @@ class Penjualan(Transaksi):
         for item in self.daftar_item:
             self.total_harga += item["harga"] * item["jumlah"]
         return self.total_harga
+    
+    def hitung_subtotal(self):
+        """Menghitung subtotal sebelum PPN"""
+        subtotal = 0
+        for item in self.daftar_item:
+            subtotal += item["harga"] * item["jumlah"]
+        return subtotal
+    
+    def hitung_ppn(self):
+        """Menghitung nilai PPN 11%"""
+        return int(self.hitung_subtotal() * PPN_RATE)
+    
+    def hitung_total_dengan_ppn(self):
+        """Menghitung total akhir termasuk PPN"""
+        return self.hitung_subtotal() + self.hitung_ppn()
 
     def cetak_struk(self):
         # Menampilkan struk penjualan ke layar dengan info lengkap
-        print("\n" + "="*50)
-        print("NGOPIKUY COFFEE SHOP".center(50))
-        print("="*50)
+        metode_display = self.metode_bayar.capitalize()
+        
+        print("\n" + "="*54)
+        print("NGOPIKUY COFFEE SHOP".center(54))
+        print("="*54)
         print(f"ID Transaksi : {self.id_transaksi}")
         print(f"Tanggal      : {self.tanggal_transaksi}")
         print(f"Kasir        : {self.username}")
-        print(f"Pembayaran   : {self.metode_bayar}")
-        print("-" * 50)
+        print(f"Pembayaran   : {metode_display}")
+        print("-" * 54)
 
         for item in self.daftar_item:
             subtotal = item['harga'] * item['jumlah']
-            print(f"{item['nama_produk']:<25} x{item['jumlah']:<3} Rp {subtotal:>10,}")
+            print(f"{item['nama_produk']:<25} x{item['jumlah']:<2}  Rp {subtotal:>12,}")
 
-        print("-" * 50)
-        print(f"{'TOTAL':>40} : Rp {self.hitung_total():>10,}")
-        print("="*50 + "\n")
+        print("-" * 54)
+        
+        # Breakdown: Subtotal, PPN, Total
+        subtotal = self.hitung_subtotal()
+        ppn = self.hitung_ppn()
+        total = self.hitung_total_dengan_ppn()
+        
+        print(f"{'Subtotal':<32}  Rp {subtotal:>12,}")
+        print(f"{'PPN 11%':<32}  Rp {ppn:>12,}")
+        print("-" * 54)
+        print(f"{'TOTAL BAYAR':<32}  Rp {total:>12,}")
+        print("="*54)
+        print("Terima Kasih atas Kunjungan Anda!".center(54))
+        print("="*54 + "\n")
 
 
 class Pembelian(Transaksi):
@@ -546,6 +580,7 @@ class Product:
         return self.kategori
 
     def show_recipe_table(self):
+        """Tampilkan detail resep menu individual"""
         print("\n" + "="*75)
         print("DETAIL RESEP MENU - NGOPIKUY".center(75))
         print("="*75)
@@ -564,6 +599,24 @@ class Product:
             )
 
         print("="*75)
+    
+    def format_recipe_for_order(self, index):
+        """Format resep untuk ditampilkan dalam order detail gabungan (tanpa judul umum)"""
+        lines = []
+        lines.append(f"[{index}] {self.name}")
+        lines.append(f"    Kategori : {self.kategori} | Harga : Rp {self.price:,}")
+        lines.append("    " + "-"*70)
+        lines.append("    | No | Nama Bahan         | Jumlah | Satuan | Keterangan       |")
+        lines.append("    " + "-"*70)
+        
+        for i, (bahan, data) in enumerate(self.recipe.items(), start=1):
+            lines.append(
+                f"    | {i:<2} | {bahan:<18} | {data['qty']:>6} | {data['unit']:^6} | "
+                f"{data.get('note', '-'):<16} |"
+            )
+        
+        lines.append("    " + "-"*70)
+        return "\n".join(lines)
 
 
 # =========================
@@ -714,10 +767,18 @@ class LaporanManager:
             print("Belum ada transaksi penjualan hari ini")
             return
         
+        total_subtotal = 0
+        total_ppn = 0
+        
         for trx in transaksi_manager.riwayat_penjualan:
-            total_pendapatan += trx.hitung_total()
+            total_subtotal += trx.hitung_subtotal()
+            total_ppn += trx.hitung_ppn()
+        
+        total_pendapatan = total_subtotal + total_ppn
         
         print(f"Total Transaksi      : {total_transaksi}")
+        print(f"Subtotal             : Rp {total_subtotal:,}")
+        print(f"PPN 11%              : Rp {total_ppn:,}")
         print(f"Total Pendapatan     : Rp {total_pendapatan:,}")
         print(f"Rata-rata/Transaksi  : Rp {total_pendapatan//total_transaksi:,}")
         print("=" * 60)
@@ -756,7 +817,7 @@ class LaporanManager:
         rekap = {}
         for trx in transaksi_manager.riwayat_penjualan:
             metode = trx.metode_bayar.upper()
-            total = trx.hitung_total()
+            total = trx.hitung_total_dengan_ppn()
             
             if metode not in rekap:
                 rekap[metode] = {"jumlah": 0, "total": 0}
@@ -1222,52 +1283,117 @@ def main():
             print("\n" + "="*60)
             print("TRANSAKSI PENJUALAN - NGOPIKUY".center(60))
             print("="*60)
-            product_manager.show_products()
+            
+            daftar_pesanan = []  # Simpan produk yang akan dijual
+            
+            # Loop untuk memungkinkan menambah multiple produk
+            while True:
+                product_manager.show_products()
+                
+                try:
+                    pilih = int(input("\nPilih nomor menu: ")) - 1
+                    product = product_manager.get_product_by_index(pilih)
+
+                    if not product:
+                        print("❌ Menu tidak valid")
+                        continue
+
+                    jumlah_order = int(input("Jumlah pesanan: "))
+                    if jumlah_order <= 0:
+                        print("❌ Jumlah harus lebih dari 0")
+                        continue
+
+                    # Simpan pesanan ke daftar
+                    daftar_pesanan.append({
+                        "produk": product,
+                        "jumlah": jumlah_order
+                    })
+                    
+                    print(f"\n✓ {product.name} x{jumlah_order} ditambahkan ke pesanan")
+                    
+                    # Konfirmasi apakah ingin menambah produk lagi
+                    print("\n" + "-"*60)
+                    lanjut = input("Tambah produk lagi? (ya/tidak): ").strip().lower()
+                    if lanjut not in ["ya", "y", "yes"]:
+                        break
+                    print("-"*60)
+                    
+                except ValueError:
+                    print("❌ Input tidak valid")
+                    continue
+            
+            # Jika ada pesanan, lanjutkan ke detail dan pembayaran
+            if not daftar_pesanan:
+                print("❌ Tidak ada pesanan yang dibuat")
+                continue
             
             try:
-                pilih = int(input("\nPilih nomor menu: ")) - 1
-                product = product_manager.get_product_by_index(pilih)
+                # Tampilkan ringkasan pesanan
+                print("\n" + "="*80)
+                print("DETAIL RESEP PESANAN - NGOPIKUY".center(80))
+                print("="*80)
+                
+                # Tampilkan setiap produk dengan format gabungan
+                for i, item in enumerate(daftar_pesanan, 1):
+                    product = item['produk']
+                    jumlah = item['jumlah']
+                    print(f"\n[{i}] {product.name} x{jumlah}")
+                    print(f"    Kategori : {product.kategori} | Harga : Rp {product.price:,}")
+                    print("    " + "-"*76)
+                    print("    | No | Nama Bahan         | Jumlah | Satuan | Keterangan       |")
+                    print("    " + "-"*76)
+                    
+                    for j, (bahan, data) in enumerate(product.recipe.items(), start=1):
+                        print(
+                            f"    | {j:<2} | {bahan:<18} | {data['qty']:>6} | {data['unit']:^6} | "
+                            f"{data.get('note', '-'):<16} |"
+                        )
+                    
+                    print("    " + "-"*76)
+                
+                print("\n" + "="*80)
 
-                if not product:
-                    print("❌ Menu tidak valid")
-                    continue
-
-                jumlah_order = int(input("Jumlah pesanan: "))
-                if jumlah_order <= 0:
-                    print("❌ Jumlah harus lebih dari 0")
-                    continue
-
-                # Tampilkan detail resep
-                product.show_recipe_table()
-
-                # Buat transaksi penjualan dengan ID format baru dan username
-                metode_bayar = input("\nMetode Pembayaran (Tunai/Debit/QRIS): ").strip().lower()
-                metode_valid = ["tunai", "debit", "qris"]
-                if metode_bayar not in metode_valid:
-                    print("❌ Metode pembayaran hanya: Tunai, Debit, atau QRIS")
+                # Input metode pembayaran dengan menu numerik
+                print("\nPilih Metode Pembayaran:")
+                print("1. Tunai")
+                print("2. Debit")
+                print("3. QRIS")
+                
+                metode_input = input("\nPilihan (1-3): ").strip()
+                metode_map = {"1": "tunai", "2": "debit", "3": "qris"}
+                
+                if metode_input not in metode_map:
+                    print("❌ Pilihan tidak valid. Gunakan 1, 2, atau 3")
                     continue
                 
+                metode_bayar = metode_map[metode_input]
+
+                # Buat transaksi penjualan
                 id_penjualan = generate_id_penjualan(len(riwayat_transaksi))
                 transaksi = Penjualan(id_penjualan, metode_bayar, username)
                 
                 # Cek & kurangi stok untuk setiap pesanan
                 try:
-                    for _ in range(jumlah_order):
-                        for bahan, data in product.recipe.items():
-                            inventory.use_stock(bahan, data["qty"], username)  # Pass username untuk audit
-                        transaksi.tambah_produk(product, 1)
+                    for item in daftar_pesanan:
+                        product = item['produk']
+                        jumlah = item['jumlah']
+                        
+                        for _ in range(jumlah):
+                            for bahan, data in product.recipe.items():
+                                inventory.use_stock(bahan, data["qty"], username)
+                            transaksi.tambah_produk(product, 1)
                     
-                    # Cetak struk dengan user info
+                    # Cetak struk
                     transaksi.cetak_struk()
                     
                     # Simpan ke riwayat
                     riwayat_transaksi.append(transaksi)
                     transaksi_manager.tambah_penjualan(transaksi)
                     
-                    # FASE 2: Tambahkan ke antrian pesanan
+                    # Tambahkan ke antrian pesanan
                     antrian_pesanan.tambah_pesanan(transaksi)
                     
-                    print(f"✓ {product.name} x{jumlah_order} BERHASIL DIJUAL | Total: Rp {transaksi.hitung_total():,}")
+                    print(f"✓ TRANSAKSI BERHASIL | Total: Rp {transaksi.hitung_total_dengan_ppn():,}")
                     
                 except StokTidakCukupError as e:
                     print("\n❌ GAGAL MENJUAL PRODUK")
