@@ -596,9 +596,9 @@ def tampilkan_menu():
     print("="*70)
 
 
-# ===============================
+# ================================
 # FUNGSI UTAMA
-# ===============================
+# ================================
 def main():
     """Fungsi utama untuk menjalankan sistem"""
     global riwayat_transaksi
