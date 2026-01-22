@@ -88,7 +88,7 @@ class Transaksi:
         self.username = username  # Tracking siapa melakukan transaksi
         self.daftar_item = []
 
-    def tambah_item(self, item, jumlah):
+    def tambah_item(self, item):
         # Menambahkan item ke dalam transaksi
         self.daftar_item.append(item)
 
@@ -98,7 +98,6 @@ class Penjualan(Transaksi):
     def __init__(self, id_transaksi, metode_bayar, username="system"):
         # Memanggil constructor Transaksi (inheritance)
         super().__init__(id_transaksi, username)
-        self.total_harga = 0          # Menyimpan total harga penjualan
         self.metode_bayar = metode_bayar  # Menyimpan metode pembayaran
         # FASE 2: Status tracking pesanan
         self.status = StatusPesanan.DIBUAT
@@ -124,14 +123,7 @@ class Penjualan(Transaksi):
             "nama_produk": produk.name,
             "harga": produk.price,
             "jumlah": jumlah
-        }, jumlah)
-
-    def hitung_total(self):
-        # Menghitung total harga dari seluruh produk yang dijual
-        self.total_harga = 0
-        for item in self.daftar_item:
-            self.total_harga += item["harga"] * item["jumlah"]
-        return self.total_harga
+        })
     
     def hitung_subtotal(self):
         """Menghitung subtotal sebelum PPN"""
@@ -196,7 +188,7 @@ class Pembelian(Transaksi):
             "nama_bahan": bahan_baku,
             "jumlah": jumlah,
             "harga_satuan": harga_satuan
-        }, jumlah)
+        })
 
     def konfirmasi_pembelian(self):
         # Menghitung total biaya pembelian bahan baku
@@ -459,11 +451,11 @@ class ManajemenPersediaan:
     # TABEL STOK (FIXED & RAPI)
     # =========================
     def show_stock_table(self):
-        print("\n" + "="*65)
-        print("STOK BAHAN - NGOPIKUY".center(65))
-        print("="*65)
-        print(f"| {'No':<3} | {'Nama Bahan':<20} | {'Jumlah':>10} | {'Satuan':^8} | {'Status':^8} |")
-        print("-"*65)
+        print("\n" + "="*80)
+        print("STOK BAHAN - NGOPIKUY".center(80))
+        print("="*80)
+        print(f"| {'No':<4} | {'Nama Bahan':<30} | {'Jumlah':>10} | {'Satuan':^10} | {'Status':^10} |")
+        print("-"*80)
 
         for i, (bahan, data) in enumerate(self.stock.items(), start=1):
             jumlah = data["qty"]
@@ -471,27 +463,27 @@ class ManajemenPersediaan:
             status = self.get_status(jumlah)
 
             print(
-                f"| {i:<3} | {bahan:<20} | "
-                f"{jumlah:>10} | {satuan:^8} | {status:^8} |"
+                f"| {i:<4} | {bahan:<30} | "
+                f"{jumlah:>10} | {satuan:^10} | {status:^10} |"
             )
 
-        print("="*65)
+        print("="*80)
 
     def show_stock_table_compact(self, title="DAFTAR BAHAN TERSEDIA"):
         """Tampilkan tabel stok dalam format ringkas untuk tambah resep"""
-        print("\n" + "="*65)
-        print(title.center(65))
-        print("="*65)
-        print(f"| {'No':<3} | {'Nama Bahan':<25} | {'Satuan':^8} | {'Status':^8} |")
-        print("-"*65)
+        print("\n" + "="*75)
+        print(title.center(75))
+        print("="*75)
+        print(f"| {'No':<3} | {'Nama Bahan':<32} | {'Satuan':^8} | {'Status':^8} |")
+        print("-"*75)
 
         for i, (bahan, data) in enumerate(self.stock.items(), start=1):
             satuan = data["unit"]
             jumlah = data["qty"]
             status = self.get_status(jumlah)
-            print(f"| {i:<3} | {bahan:<25} | {satuan:^8} | {status:^8} |")
+            print(f"| {i:<3} | {bahan:<32} | {satuan:^8} | {status:^8} |")
 
-        print("="*65)
+        print("="*75)
 
     def show_recipe_helper_table(self):
         """Tabel panduan bahan, satuan, dan keterangan untuk tambah resep."""
@@ -537,7 +529,7 @@ class ManajemenPersediaan:
     # =========================
     def show_audit_logs(self, limit=20):
         """Tampilkan audit log stok (default 20 terbaru) dalam format ringkas."""
-        width = 96
+        width = 100
         print("\n" + "="*width)
         print("AUDIT LOG STOK - NGOPIKUY".center(width))
         print("="*width)
@@ -551,7 +543,7 @@ class ManajemenPersediaan:
         # Tampilkan terbaru dulu
         logs_to_show = list(reversed(logs_to_show))
 
-        print(f"| {'No':<3} | {'Waktu':<19} | {'User':<14} | {'Aksi':<6} | {'Bahan':<28} | {'Jumlah':>20} |")
+        print(f"| {'No':<3} | {'Waktu':<19} | {'User':<12} | {'Aksi':<6} | {'Bahan':<28} | {'Jumlah':<15} |")
         print("-"*width)
         for i, log in enumerate(logs_to_show, start=1):
             # Format jumlah ringkas dengan unit dan konversi otomatis untuk gram
@@ -566,8 +558,8 @@ class ManajemenPersediaan:
                 jumlah_display = f"{log.jumlah} {log.unit}"
 
             print(
-                f"| {i:<3} | {log.waktu:<19} | {log.username:<14} | {log.aksi:<6} | "
-                f"{log.bahan:<28} | {jumlah_display:>20} |"
+                f"| {i:<3} | {log.waktu:<19} | {log.username:<12} | {log.aksi:<6} | "
+                f"{log.bahan:<28} | {jumlah_display:<15} |"
             )
 
         print("="*width)
@@ -602,26 +594,31 @@ class AntrianPesanan:
 
     def show_antrian(self):
         """Tampilkan antrian pesanan yang belum selesai"""
-        print("\n" + "="*80)
-        print("ANTRIAN PESANAN - NGOPIKUY".center(80))
-        print("="*80)
-        
         # Filter hanya pesanan yang belum diambil/batal
         active = [p for p in self.antrian if p.status not in [StatusPesanan.DIAMBIL, StatusPesanan.BATAL]]
         
+        header = f"| {'No':<3} | {'ID Transaksi':<20} | {'Status':<10} | {'Kasir':<14} | {'Waktu Dibuat':<19} |"
+        table_width = len(header)
+        sep = "-" * table_width
+        
+        print("\n" + "=" * table_width)
+        print("ANTRIAN PESANAN - NGOPIKUY".center(table_width))
+        print("=" * table_width)
+        
         if not active:
             print("Tidak ada pesanan dalam antrian")
-            print("="*80)
+            print("=" * table_width)
             return
         
-        print(f"| {'No':<3} | {'ID Transaksi':<20} | {'Status':<10} | {'Kasir':<12} | {'Waktu Dibuat':<18} |")
-        print("-"*80)
+        print(header)
+        print(sep)
         
         for i, pesanan in enumerate(active, start=1):
             waktu = pesanan.waktu_dibuat.strftime("%Y-%m-%d %H:%M:%S")
-            print(f"| {i:<3} | {pesanan.id_transaksi:<20} | {pesanan.status:<10} | {pesanan.username:<12} | {waktu:<18} |")
+            row = f"| {i:<3} | {pesanan.id_transaksi:<20} | {pesanan.status:<10} | {pesanan.username:<14} | {waktu:<19} |"
+            print(row)
         
-        print("="*80)
+        print("=" * table_width)
         print(f"Total antrian aktif: {len(active)}")
 
     def update_status_pesanan(self, id_transaksi, status_baru, username):
@@ -663,41 +660,59 @@ class Product:
 
     def show_recipe_table(self):
         """Tampilkan detail resep menu individual"""
-        print("\n" + "="*75)
-        print("DETAIL RESEP MENU - NGOPIKUY".center(75))
-        print("="*75)
+        header = f"| {'No':<3} | {'Nama Bahan':<28} | {'Jumlah':>8} | {'Satuan':^8} | {'Keterangan':<15} |"
+        table_width = len(header)
+        sep = "-" * table_width
+
+        print("\n" + "=" * table_width)
+        print("DETAIL RESEP MENU - NGOPIKUY".center(table_width))
+        print("=" * table_width)
         print(f"Menu     : {self.name}")
         print(f"Kategori : {self.kategori}")
         print(f"Harga    : Rp {self.price:,}")
-        print("-"*75)
-        print(f"| {'No':<3} | {'Nama Bahan':<20} | {'Jumlah':>8} | {'Satuan':^8} | {'Keterangan':<15} |")
-        print("-"*75)
+        print(sep)
+        print(header)
+        print(sep)
 
         for i, (bahan, data) in enumerate(self.recipe.items(), start=1):
-            print(
-                f"| {i:<3} | {bahan:<20} | "
+            row = (
+                f"| {i:<3} | {bahan:<28} | "
                 f"{data['qty']:>8} | {data['unit']:^8} | "
                 f"{data.get('note', '-'):<15} |"
             )
+            print(row)
 
-        print("="*75)
+        print("=" * table_width)
     
     def format_recipe_for_order(self, index):
         """Format resep untuk ditampilkan dalam order detail gabungan (tanpa judul umum)"""
         lines = []
+        indent = "    "
+        
+        # Header dengan nama produk
         lines.append(f"[{index}] {self.name}")
-        lines.append(f"    Kategori : {self.kategori} | Harga : Rp {self.price:,}")
-        lines.append("    " + "-"*70)
-        lines.append("    | No | Nama Bahan         | Jumlah | Satuan | Keterangan       |")
-        lines.append("    " + "-"*70)
+        lines.append(f"{indent}Kategori : {self.kategori} | Harga : Rp {self.price:,}")
         
+        # Buat header tabel
+        header = f"| {'No':<3} | {'Nama Bahan':<28} | {'Jumlah':>8} | {'Satuan':^8} | {'Keterangan':<15} |"
+        table_width = len(header)
+        sep = "-" * table_width
+        
+        lines.append(indent + sep)
+        lines.append(indent + header)
+        lines.append(indent + sep)
+        
+        # Baris data resep
         for i, (bahan, data) in enumerate(self.recipe.items(), start=1):
-            lines.append(
-                f"    | {i:<2} | {bahan:<18} | {data['qty']:>6} | {data['unit']:^6} | "
-                f"{data.get('note', '-'):<16} |"
+            row = (
+                f"| {i:<3} | {bahan:<28} | "
+                f"{data['qty']:>8} | {data['unit']:^8} | "
+                f"{data.get('note', '-'):<15} |"
             )
+            lines.append(indent + row)
         
-        lines.append("    " + "-"*70)
+        # Footer
+        lines.append(indent + sep)
         return "\n".join(lines)
 
 
@@ -785,19 +800,24 @@ class ProductManager:
 
     def show_products_table_only(self):
         """Tampilkan tabel produk tanpa judul (untuk konteks dengan judul custom)"""
-        print(f"| {'No':<3} | {'Nama Produk':<20} | {'Harga':>12} | {'Kategori':<18} |")
-        print("-"*65)
+        header = f"| {'No':<3} | {'Nama Produk':<26} | {'Harga':>14} | {'Kategori':<16} |"
+        table_width = len(header)
+        sep = "-" * table_width
+        
+        print(header)
+        print(sep)
 
         if not self.products:
-            print(f"| {'--':<3} | {'BELUM ADA PRODUK':<20} | {' ':>12} | {' ':<18} |")
+            print(f"| {'--':<3} | {'BELUM ADA PRODUK':<26} | {' ':>14} | {' ':<16} |")
         else:
             for i, product in enumerate(self.products, start=1):
-                print(
-                    f"| {i:<3} | {product.name:<20} | "
-                    f"Rp {product.price:>9,} | {product.get_label():<18} |"
+                row = (
+                    f"| {i:<3} | {product.name:<26} | "
+                    f"Rp {product.price:>11,} | {product.get_label():<16} |"
                 )
+                print(row)
 
-        print("="*65)
+        print("=" * table_width)
 
     # ambil produk berdasarkan pilihan user
     def get_product_by_index(self, index):
@@ -826,9 +846,9 @@ class TransaksiManager:
     
     def tampilkan_riwayat_penjualan(self):
         """Menampilkan semua riwayat penjualan"""
-        print("\n" + "="*60)
-        print("RIWAYAT PENJUALAN - NGOPIKUY".center(60))
-        print("="*60)
+        print("\n" + "="*86)
+        print("RIWAYAT PENJUALAN - NGOPIKUY".center(86))
+        print("="*86)
         if not self.riwayat_penjualan:
             print("Belum ada transaksi penjualan")
         else:
@@ -838,19 +858,20 @@ class TransaksiManager:
     
     def tampilkan_riwayat_pembelian(self):
         """Menampilkan semua riwayat pembelian"""
-        print("\n" + "="*60)
-        print("RIWAYAT PEMBELIAN - NGOPIKUY".center(60))
-        print("="*60)
+        print("\n" + "="*86)
+        print("RIWAYAT PEMBELIAN - NGOPIKUY".center(86))
+        print("="*86)
         if not self.riwayat_pembelian:
             print("Belum ada transaksi pembelian")
         else:
+            print(f"| {'No':<3} | {'ID Transaksi':<20} | {'Tanggal':<19} | {'Supplier':<22} | {'Total':>12} |")
+            print("-"*86)
             for i, trx in enumerate(self.riwayat_pembelian, 1):
-                print(f"\n--- Pembelian #{i} ---")
-                print(f"ID Transaksi: {trx.id_transaksi}")
-                print(f"Tanggal: {trx.tanggal_transaksi}")
-                print(f"Supplier: {trx.kode_supplier}")
-                print(f"Total: Rp {trx.konfirmasi_pembelian():,}")
-                print("-" * 40)
+                total = trx.konfirmasi_pembelian()
+                print(
+                    f"| {i:<3} | {trx.id_transaksi:<20} | {trx.tanggal_transaksi:<19} | {trx.kode_supplier:<22} | Rp {total:>9,} |"
+                )
+            print("="*86)
 
 
 # =========================
@@ -1151,20 +1172,20 @@ SUPPLIERS = {
 }
 
 def show_suppliers_table():
-    print("\n" + "="*80)
-    print("DAFTAR SUPPLIER - NGOPIKUY".center(80))
-    print("="*80)
-    print(f"| {'No':<3} | {'Kode':<10} | {'Nama Supplier':<22} | {'Menyediakan':<38} |")
-    print("-"*80)
+    print("\n" + "="*86)
+    print("DAFTAR SUPPLIER - NGOPIKUY".center(86))
+    print("="*86)
+    print(f"| {'No':<3} | {'Kode':<10} | {'Nama Supplier':<24} | {'Menyediakan':<42} |")
+    print("-"*86)
     supplier_list = sorted(SUPPLIERS.keys())
     for i, kode in enumerate(supplier_list, start=1):
         data = SUPPLIERS[kode]
         items = list(data.get("produk", {}).keys())
         if not items and "menyediakan" in data:
             items = data["menyediakan"]
-        menyediakan = ", ".join(items)[:38]
-        print(f"| {i:<3} | {kode:<10} | {data['nama']:<22} | {menyediakan:<38} |")
-    print("="*80)
+        menyediakan = ", ".join(items)[:42]
+        print(f"| {i:<3} | {kode:<10} | {data['nama']:<24} | {menyediakan:<42} |")
+    print("="*86)
 
 
 # ===============================
@@ -1287,59 +1308,12 @@ def main():
         # ===============================
         elif pilihan == "3":
             print("\n" + "="*60)
-            print("RESTOCK BAHAN - NGOPIKUY".center(60))
-            print("="*60)
-            try:
-                bahan = input("Nama bahan: ").strip()
-                if not bahan:
-                    print("❌ Nama bahan tidak boleh kosong!")
-                    continue
-                
-                jumlah_str = input("Jumlah: ").strip()
-                try:
-                    jumlah = int(jumlah_str)
-                except ValueError:
-                    print("❌ Input jumlah tidak valid. Masukkan angka bulat, contoh: 10.")
-                    continue
-                if jumlah <= 0:
-                    print("❌ Jumlah harus lebih dari 0!")
-                    continue
-                
-                # Input satuan: pilih dari opsi yang tersedia (tanpa input manual)
-                print("\nPilih Satuan:")
-                print("1. gram")
-                print("2. kg")
-                print("3. ml")
-                print("4. pcs")
-                satuan_input = input("Satuan (1-4): ").strip().lower()
-                mapping = {"1": "gram", "2": "kg", "3": "ml", "4": "pcs"}
-                if satuan_input not in mapping:
-                    print("❌ Pilihan satuan tidak valid. Pilih 1-gram, 2-kg, 3-ml, atau 4-pcs.")
-                    continue
-                satuan = mapping[satuan_input]
-                
-                # Hitung kuantitas aktual jika satuan kg (konversi ke gram untuk penyimpanan)
-                actual_qty = jumlah * 1000 if satuan.lower() == "kg" else jumlah
-                actual_unit = "gram" if satuan.lower() == "kg" else satuan
-                
-                inventory.add_stock(bahan, jumlah, username, unit=satuan)
-                print(f"✓ Berhasil menambah {actual_qty} {actual_unit} {bahan}")
-                inventory.show_stock_table()
-            except ValueError as e:
-                print(f"❌ {e}")
-
-        # (slot 5 moved)
-
-        # ===============================
-        # 4. TAMBAH / RESTOCK BAHAN
-        # ===============================
-        elif pilihan == "4":
-            print("\n" + "="*60)
             print("TAMBAH PRODUK BARU - NGOPIKUY".center(60))
             print("="*60)
+            print("(Tekan Enter tanpa isi untuk kembali)")
             nama = input("Nama produk: ").strip()
             if not nama:
-                print("❌ Nama produk tidak boleh kosong!")
+                print("↩ Kembali ke menu utama")
                 continue
 
             print("\nPilih Kategori:")
@@ -1454,6 +1428,55 @@ def main():
                 ProductFactory.create_product(nama, kategori, harga, recipe)
             )
             print(f"✓ Produk '{nama}' berhasil ditambahkan")
+
+        # (slot 5 moved)
+
+        # ===============================
+        # 4. TAMBAH / RESTOCK BAHAN
+        # ===============================
+        elif pilihan == "4":
+            print("\n" + "="*60)
+            print("RESTOCK BAHAN - NGOPIKUY".center(60))
+            print("="*60)
+            try:
+                print("(Tekan Enter tanpa isi untuk kembali)")
+                bahan = input("Nama bahan: ").strip()
+                if not bahan:
+                    print("↩ Kembali ke menu utama")
+                    continue
+                
+                jumlah_str = input("Jumlah: ").strip()
+                try:
+                    jumlah = int(jumlah_str)
+                except ValueError:
+                    print("❌ Input jumlah tidak valid. Masukkan angka bulat, contoh: 10.")
+                    continue
+                if jumlah <= 0:
+                    print("❌ Jumlah harus lebih dari 0!")
+                    continue
+                
+                # Input satuan: pilih dari opsi yang tersedia (tanpa input manual)
+                print("\nPilih Satuan:")
+                print("1. gram")
+                print("2. kg")
+                print("3. ml")
+                print("4. pcs")
+                satuan_input = input("Satuan (1-4): ").strip().lower()
+                mapping = {"1": "gram", "2": "kg", "3": "ml", "4": "pcs"}
+                if satuan_input not in mapping:
+                    print("❌ Pilihan satuan tidak valid. Pilih 1-gram, 2-kg, 3-ml, atau 4-pcs.")
+                    continue
+                satuan = mapping[satuan_input]
+                
+                # Hitung kuantitas aktual jika satuan kg (konversi ke gram untuk penyimpanan)
+                actual_qty = jumlah * 1000 if satuan.lower() == "kg" else jumlah
+                actual_unit = "gram" if satuan.lower() == "kg" else satuan
+                
+                inventory.add_stock(bahan, jumlah, username, unit=satuan)
+                print(f"✓ Berhasil menambah {actual_qty} {actual_unit} {bahan}")
+                inventory.show_stock_table()
+            except ValueError as e:
+                print(f"❌ {e}")
 
         # (slot 7 re-mapped below for Pembelian)
 
@@ -1578,7 +1601,12 @@ def main():
                 continue
             
             try:
-                # Tampilkan ringkasan pesanan
+                # Tampilkan ringkasan pesanan dengan tabel yang rapi
+                indent = "    "
+                header = f"| {'No':<3} | {'Nama Bahan':<28} | {'Jumlah':>8} | {'Satuan':^8} | {'Keterangan':<15} |"
+                table_width = len(header)
+                sep = "-" * table_width
+                
                 print("\n" + "="*80)
                 print("DETAIL RESEP PESANAN - NGOPIKUY".center(80))
                 print("="*80)
@@ -1593,22 +1621,25 @@ def main():
                     harga_total = product.price + harga_adjustment
                     
                     print(f"\n[{i}] {product.name} ({ukuran}) {suhu} x{jumlah}")
-                    print(f"    Kategori : {product.kategori} | Harga : Rp {product.price:,}", end="")
+                    print(f"{indent}Kategori : {product.kategori} | Harga : Rp {product.price:,}", end="")
                     if harga_adjustment > 0:
                         print(f" + Rp {harga_adjustment:,} (ukuran) = Rp {harga_total:,}")
                     else:
                         print()
-                    print("    " + "-"*72)
-                    print("    | No | Nama Bahan         | Jumlah  | Satuan | Keterangan       |")
-                    print("    " + "-"*72)
+                    
+                    print(indent + sep)
+                    print(indent + header)
+                    print(indent + sep)
                     
                     for j, (bahan, data) in enumerate(product.recipe.items(), start=1):
-                        print(
-                            f"    | {j:<2} | {bahan:<18} | {data['qty']:>6} | {data['unit']:^6} | "
-                            f"{data.get('note', '-'):<16} |"
+                        row = (
+                            f"| {j:<3} | {bahan:<28} | "
+                            f"{data['qty']:>8} | {data['unit']:^8} | "
+                            f"{data.get('note', '-'):<15} |"
                         )
+                        print(indent + row)
                     
-                    print("    " + "-"*72)
+                    print(indent + sep)
                 
                 print("\n" + "="*80)
 
@@ -1654,27 +1685,23 @@ def main():
                         while True:
                             print("\nPilih Provider QRIS:")
                             print("1. GoPay")
-                            print("2. OVO")
-                            print("3. DANA")
-                            print("4. ShopeePay")
-                            print("5. LinkAja")
-                            print("6. BCA Mobile")
+                            print("2. DANA")
+                            print("3. ShopeePay")
+                            print("4. BCA Mobile")
                             
-                            qris_input = input("\nPilihan (1-6): ").strip()
+                            qris_input = input("\nPilihan (1-4): ").strip()
                             qris_map = {
                                 "1": "QRIS - GoPay",
-                                "2": "QRIS - OVO",
-                                "3": "QRIS - DANA",
-                                "4": "QRIS - ShopeePay",
-                                "5": "QRIS - LinkAja",
-                                "6": "QRIS - BCA Mobile"
+                                "2": "QRIS - DANA",
+                                "3": "QRIS - ShopeePay",
+                                "4": "QRIS - BCA Mobile"
                             }
                             
                             if qris_input in qris_map:
                                 metode_bayar = qris_map[qris_input]
                                 break
                             else:
-                                print("❌ Pilihan tidak valid! Masukkan 1-6")
+                                print("❌ Pilihan tidak valid! Masukkan 1-4")
                         break
                     else:
                         print("❌ Pilihan tidak valid! Masukkan 1, 2, atau 3")
@@ -1729,145 +1756,116 @@ def main():
         # ===============================
         elif pilihan == "6":
             while True:
-                # Tampilkan daftar supplier untuk mempermudah pemilihan
                 show_suppliers_table()
-                # Input supplier: gunakan nomor atau kode
-                supplier_list = sorted(SUPPLIERS.keys())
-                supplier = None
-                supplier_label = ""
-
-                while True:
-                    supplier_input = input("\nNomor Supplier (1-{}) atau Kode (mis. SUP-COF): ".format(len(supplier_list))).strip()
-                    if not supplier_input:
-                        print("❌ Input tidak boleh kosong!")
-                        continue
-
-                    # Jika angka: pilih berdasarkan nomor tabel
-                    if supplier_input.isdigit():
-                        idx = int(supplier_input)
-                        if 1 <= idx <= len(supplier_list):
-                            kode_supplier = supplier_list[idx - 1]
-                            supplier = SUPPLIERS[kode_supplier]
-                            supplier_label = f"{kode_supplier} - {supplier['nama']}"
-                            break
-                        else:
-                            print(f"❌ Nomor supplier tidak valid! Pilih 1-{len(supplier_list)}")
-                            continue
-                    
-                    # Jika bukan angka: coba kode (case-insensitive)
-                    kode_supplier = supplier_input.upper()
-                    if kode_supplier in SUPPLIERS:
-                        supplier = SUPPLIERS[kode_supplier]
-                        supplier_label = f"{kode_supplier} - {supplier['nama']}"
-                        break
-
-                    print("❌ Supplier tidak ditemukan. Gunakan nomor tabel atau kode.")
                 
-                if supplier is None:
-                    print("❌ Supplier tidak ditemukan")
+                # Input supplier
+                supplier_list = sorted(SUPPLIERS.keys())
+                supplier_input = input("\nPilih Nomor Supplier (kembali = menu utama): ").strip().lower()
+                
+                # Opsi keluar
+                if supplier_input == "kembali":
+                    print("Kembali ke menu utama...")
+                    break
+                
+                if not supplier_input.isdigit():
+                    print("❌ Input harus nomor atau 'kembali'!")
                     continue
-
-                katalog = list(supplier.get("produk", {}).items())  # [(nama_bahan, harga_satuan), ...]
+                
+                idx = int(supplier_input)
+                if idx < 1 or idx > len(supplier_list):
+                    print(f"❌ Nomor tidak valid! Pilih 1-{len(supplier_list)} atau 'kembali'")
+                    continue
+                
+                kode_supplier = supplier_list[idx - 1]
+                supplier = SUPPLIERS[kode_supplier]
+                supplier_label = f"{kode_supplier} - {supplier['nama']}"
+                
+                katalog = list(supplier.get("produk", {}).items())
                 if not katalog:
-                    print("❌ Supplier tidak memiliki katalog harga")
+                    print("❌ Supplier tidak memiliki katalog")
                     continue
-
-                # Tampilkan katalog supplier (nama, unit dari inventory, harga per unit)
-                print("\n" + "="*80)
-                print("PILIH ITEM UNTUK DIBELI - KATALOG SUPPLIER".center(80))
-                print("-"*80)
-                print(f"Supplier: {supplier_label}".ljust(80))
-                print("="*80)
-                print(f"| {'No':<3} | {'Nama Bahan':<25} | {'Unit':^8} | {'Harga/Satuan':>15} |")
-                print("-"*80)
+                
+                # Tampilkan katalog dengan format rapi
+                header = f"| {'No':<3} | {'Nama Bahan':<30} | {'Unit':^10} | {'Harga/Satuan':>14} |"
+                table_width = len(header)
+                sep = "-" * table_width
+                
+                print("\n" + "=" * table_width)
+                print(f"KATALOG - {supplier['nama']}".center(table_width))
+                print("=" * table_width)
+                print(header)
+                print(sep)
                 for i, (bahan_nama, harga_unit) in enumerate(katalog, start=1):
                     unit = inventory.stock.get(bahan_nama, {}).get("unit", "pcs")
-                    print(f"| {i:<3} | {bahan_nama:<25} | {unit:^8} | Rp {harga_unit:>13,} |")
-                print("="*80)
-
-                # Buat transaksi pembelian dengan ID format baru dan username
+                    row = (
+                        f"| {i:<3} | {bahan_nama:<30} | {unit:^10} | "
+                        f"Rp {harga_unit:>12,} |"
+                    )
+                    print(row)
+                print("=" * table_width)
+                
+                # Buat transaksi pembelian
                 id_pembelian = generate_id_pembelian(len(transaksi_manager.riwayat_pembelian))
                 transaksi_beli = Pembelian(id_pembelian, supplier_label, username)
-
-                print("\nPilih item yang ingin dibeli (nomor item):")
-                back_to_suppliers = False
+                
+                # Loop pilih item
                 while True:
-                    pilih_item = input("Nomor item (atau 'kembali'/'selesai'): ").strip().lower()
-                    if pilih_item == "selesai":
-                        break
-                    if pilih_item == "kembali":
-                        if transaksi_beli.daftar_item:
-                            confirm = input("Ada item yang sudah ditambahkan. Simpan pembelian? (y/n): ").strip().lower()
-                            if confirm == "y":
-                                break
-                            else:
-                                print("⚠ Pembelian dibatalkan tanpa disimpan.")
-                        back_to_suppliers = True
-                        break
-
-                if not pilih_item.isdigit():
-                    print("❌ Input harus angka nomor item")
-                    continue
-                idx = int(pilih_item) - 1
-                if idx < 0 or idx >= len(katalog):
-                    print("❌ Nomor item tidak valid")
-                    continue
-
-                nama_bahan, harga_satuan = katalog[idx]
-                unit = inventory.stock.get(nama_bahan, {}).get("unit", "pcs")
-
-                try:
-                    jumlah = int(input(f"Jumlah ({unit}): "))
-                    if jumlah <= 0:
-                        print("❌ Jumlah harus lebih dari 0")
+                    pilih_item = input("\nPilih Nomor Item: ").strip()
+                    
+                    if not pilih_item.isdigit():
+                        print("❌ Input harus nomor!")
                         continue
-                except ValueError:
-                    print("❌ Input jumlah tidak valid")
-                    continue
-
-                # Tambahkan ke inventory sesuai unit existing; jika berhasil, catat ke transaksi
-                try:
-                    inventory.add_stock(nama_bahan, jumlah, username, unit=unit)
+                    
+                    idx_item = int(pilih_item) - 1
+                    if idx_item < 0 or idx_item >= len(katalog):
+                        print(f"❌ Nomor tidak valid! Pilih 1-{len(katalog)}")
+                        continue
+                    
+                    nama_bahan, harga_satuan = katalog[idx_item]
+                    unit = inventory.stock.get(nama_bahan, {}).get("unit", "pcs")
+                    
+                    try:
+                        jumlah = int(input(f"Jumlah ({unit}): "))
+                        if jumlah <= 0:
+                            print("❌ Jumlah harus lebih dari 0")
+                            continue
+                    except ValueError:
+                        print("❌ Input tidak valid")
+                        continue
+                    
+                    # Tambah item dan update stok
                     transaksi_beli.tambah_bahan(nama_bahan, jumlah, harga_satuan)
+                    inventory.add_stock(nama_bahan, jumlah, username, unit=unit)
                     subtotal = jumlah * harga_satuan
                     print(f"✓ {nama_bahan} x{jumlah} {unit} @ Rp {harga_satuan:,} = Rp {subtotal:,}")
-                except ValueError as e:
-                    print(f"⚠ Stok tidak ditambahkan: {e}")
-
-            # Jika user pilih kembali tanpa simpan
-            if back_to_suppliers:
-                continue
-
-            # Konfirmasi dan cetak struk pembelian
-            if transaksi_beli.daftar_item:
-                print("\n" + "="*60)
-                print("STRUK PEMBELIAN - NGOPIKUY".center(60))
-                print("="*60)
-                print(f"ID Transaksi : {transaksi_beli.id_transaksi}")
-                print(f"Tanggal      : {transaksi_beli.tanggal_transaksi}")
-                print(f"Supplier     : {transaksi_beli.kode_supplier}")
-                print(f"User         : {transaksi_beli.username}")
-                print("-"*60)
+                    
+                    # Konfirmasi tambah item lagi
+                    tambah_lagi = input("\nTambah item lagi? (y/n): ").strip().lower()
+                    if tambah_lagi != "y":
+                        break
                 
-                for item in transaksi_beli.daftar_item:
-                    subtotal = item['jumlah'] * item['harga_satuan']
-                    print(f"{item['nama_bahan']:<25} x{item['jumlah']:<5} @ Rp {item['harga_satuan']:>8,} = Rp {subtotal:>10,}")
+                # Tampilkan struk pembelian
+                if transaksi_beli.daftar_item:
+                    print("\n" + "="*86)
+                    print("STRUK PEMBELIAN".center(86))
+                    print("="*86)
+                    print(f"Supplier: {supplier_label}")
+                    print(f"ID Transaksi: {id_pembelian}")
+                    print("-"*86)
+                    for idx, item in enumerate(transaksi_beli.daftar_item, start=1):
+                        subtotal = item['jumlah'] * item['harga_satuan']
+                        print(f"{idx}. {item['nama_bahan']} x{item['jumlah']} @ Rp {item['harga_satuan']:,} = Rp {subtotal:,}")
+                    total = transaksi_beli.konfirmasi_pembelian()
+                    print("-"*86)
+                    print(f"{'TOTAL':>66} Rp {total:>15,}")
+                    print("="*86)
+                    
+                    transaksi_manager.tambah_pembelian(transaksi_beli)
+                else:
+                    print("\n⚠ Tidak ada item yang dipilih")
                 
-                print("-"*60)
-                total = transaksi_beli.konfirmasi_pembelian()
-                print(f"{'TOTAL PEMBELIAN':>50} : Rp {total:>10,}")
-                print("="*60)
-                
-                # Simpan ke riwayat
-                transaksi_manager.tambah_pembelian(transaksi_beli)
-                print("\n✓ Transaksi pembelian berhasil disimpan!")
-            else:
-                print("\n❌ Tidak ada bahan yang dibeli")
-
-                # Tanya apakah ingin beli dari supplier lain
-                lanjut = input("\nBeli dari supplier lain? (y/n): ").strip().lower()
-                if lanjut != "y":
-                    break
+                # Konfirmasi sebelum kembali ke daftar supplier
+                input("\nTekan Enter untuk kembali ke daftar supplier...")
 
         # ===============================
         # 7. LIHAT ANTRIAN PESANAN
@@ -1994,6 +1992,7 @@ def main():
         # ===============================
         elif pilihan == "10":
             inventory.show_audit_logs(limit=30)
+            input("\nTekan Enter untuk kembali...")
 
         # ===============================
         # 11. HAPUS PRODUK
