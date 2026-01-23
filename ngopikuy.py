@@ -789,3 +789,106 @@ while True:
 
     else:
         print("Menu tidak valid!")
+
+class BahanBaku:
+    def _init_(self, nama, stok, satuan):
+        self.nama = nama
+        self.stok = stok
+        self.satuan = satuan
+
+    def tambah_stok(self, jumlah):
+        if jumlah > 0:
+            self.stok += jumlah
+            print(f"[INFO] Stok {self.nama} bertambah {jumlah} {self.satuan}")
+        else:
+            print("[ERROR] Jumlah tidak valid")
+
+    def kurangi_stok(self, jumlah):
+        if jumlah <= 0:
+            print("[ERROR] Jumlah tidak valid")
+        elif jumlah > self.stok:
+            print("[ERROR] Stok tidak mencukupi")
+        else:
+            self.stok -= jumlah
+            print(f"[INFO] Stok {self.nama} berkurang {jumlah} {self.satuan}")
+
+    def cek_stok(self):
+        return f"{self.nama}: {self.stok} {self.satuan}"
+
+
+class Inventory:
+    def _init_(self):
+        self.daftar_bahan = {}
+
+    def tambah_bahan(self, bahan):
+        self.daftar_bahan[bahan.nama.lower()] = bahan
+        print("[INFO] Bahan berhasil ditambahkan")
+
+    def get_bahan(self, nama):
+        return self.daftar_bahan.get(nama.lower())
+
+    def tampilkan_semua_stok(self):
+        if not self.daftar_bahan:
+            print("Inventory kosong")
+        else:
+            for bahan in self.daftar_bahan.values():
+                print(bahan.cek_stok())
+
+
+def menu():
+    print("MENU MANAJEMEN STOK")
+    print("1. Tambah Bahan Baku")
+    print("2. Tambah Stok Bahan")
+    print("3. Kurangi Stok Bahan")
+    print("4. Cek Stok Bahan")
+    print("5. Tampilkan Semua Stok")
+    print("0. Keluar")
+
+
+inventory = Inventory()
+
+while True:
+    menu()
+    pilihan = input("Pilih menu: ")
+
+    if pilihan == "1":
+        nama = input("Nama bahan: ")
+        stok = int(input("Stok awal: "))
+        satuan = input("Satuan (kg/liter/dll): ")
+        inventory.tambah_bahan(BahanBaku(nama, stok, satuan))
+
+    elif pilihan == "2":
+        nama = input("Nama bahan: ")
+        jumlah = int(input("Jumlah stok ditambah: "))
+        bahan = inventory.get_bahan(nama)
+        if bahan:
+            bahan.tambah_stok(jumlah)
+        else:
+            print("[ERROR] Bahan tidak ditemukan")
+
+    elif pilihan == "3":
+        nama = input("Nama bahan: ")
+        jumlah = int(input("Jumlah stok dikurangi: "))
+        bahan = inventory.get_bahan(nama)
+        if bahan:
+            bahan.kurangi_stok(jumlah)
+        else:
+            print("[ERROR] Bahan tidak ditemukan")
+
+    elif pilihan == "4":
+        nama = input("Nama bahan: ")
+        bahan = inventory.get_bahan(nama)
+        if bahan:
+            print(bahan.cek_stok())
+        else:
+            print("[ERROR] Bahan tidak ditemukan")
+
+    elif pilihan == "5":
+        inventory.tampilkan_semua_stok()
+
+    elif pilihan == "0":
+        print("Terima kasih, program selesai.")
+        break
+
+    else:
+        print("[ERROR] Pilihan tidak valid")
