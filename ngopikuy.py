@@ -57,7 +57,7 @@ class Pembelian(Transaksi):
     # Class Pembelian Subclass dari Transaksi Merepresentasikan transaksi pembelian bahan baku dari supplier
 
     def __init__(self, id_transaksi, kode_supplier):
-        # Memanggil constructor Transaksi (inheritance)
+        # Memanggil constructor Transaksi(inheritance)
         super().__init__(id_transaksi)
         self.total_beli = 0           # Menyimpan total pembelian
         self.kode_supplier = kode_supplier  # Menyimpan kode supplier
