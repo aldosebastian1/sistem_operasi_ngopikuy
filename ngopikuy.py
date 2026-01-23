@@ -311,3 +311,224 @@ class ManajemenPersediaan:
 
         print("======================================================")
 
+
+from inventory import ManajemenPersediaan, StokTidakCukupError
+from product import ProductManager, ProductFactory
+
+
+# ===============================
+# INISIALISASI (Singleton Inventory)
+# ===============================
+inventory = ManajemenPersediaan()
+product_manager = ProductManager()
+
+
+# ===============================
+# CONTOH PRODUK & RESEP (AUTO)
+# ===============================
+latte_recipe = {
+    "Bubuk Kopi": {"qty": 18, "unit": "gram", "note": "Espresso"},
+    "Susu Full Cream": {"qty": 150, "unit": "ml", "note": "Steamed"},
+    "Air": {"qty": 30, "unit": "ml", "note": "Hot"},
+    "Cup": {"qty": 1, "unit": "pcs", "note": "Packaging"}
+}
+
+americano_recipe = {
+    "Bubuk Kopi": {"qty": 18, "unit": "gram", "note": "Espresso"},
+    "Air": {"qty": 180, "unit": "ml", "note": "Hot Water"},
+    "Cup": {"qty": 1, "unit": "pcs", "note": "Packaging"}
+}
+
+taro_latte_recipe = {
+    "Taro Powder": {"qty": 25, "unit": "gram", "note": "Flavor"},
+    "Susu Full Cream": {"qty": 150, "unit": "ml", "note": "Milk Base"},
+    "Cup": {"qty": 1, "unit": "pcs", "note": "Packaging"}
+}
+
+croissant_recipe = {
+    "Tepung Terigu": {"qty": 120, "unit": "gram", "note": "Dough"},
+    "Mentega": {"qty": 30, "unit": "gram", "note": "Butter"}
+}
+
+# pakai FACTORY
+product_manager.add_product(ProductFactory.create_product(
+    "Latte", "coffee", 22000, latte_recipe
+))
+product_manager.add_product(ProductFactory.create_product(
+    "Americano", "coffee", 20000, americano_recipe
+))
+product_manager.add_product(ProductFactory.create_product(
+    "Taro Latte", "non-coffee", 23000, taro_latte_recipe
+))
+product_manager.add_product(ProductFactory.create_product(
+    "Croissant", "pastry", 15000, croissant_recipe
+))
+
+
+# ===============================
+# TAMPILKAN STOK AWAL
+# ===============================
+print("\nSTOK AWAL BAHAN")
+inventory.show_stock_table()
+
+
+# ===============================
+# MENU UTAMA
+# ===============================
+def tampilkan_menu():
+    print("\n=== SISTEM COFFEE SHOP ===")
+    print("1. Tambah / Restock Bahan")
+    print("2. Lihat Stok Bahan")
+    print("3. Tambah Produk")
+    print("4. Lihat Daftar Produk")
+    print("5. Cari Bahan")
+    print("6. Jual Menu")
+    print("7. Hapus Produk")
+    print("8. Keluar")
+
+
+# ===============================
+# LOOP PROGRAM
+# ===============================
+while True:
+    tampilkan_menu()
+    pilihan = input("Pilih menu (1-8): ")
+    
+    # ===============================
+    # 1. RESTOCK
+    # ===============================
+    if pilihan == "1":
+        try:
+            bahan = input("Nama bahan: ")
+            jumlah = int(input("Jumlah: "))
+            inventory.add_stock(bahan, jumlah)
+            inventory.show_stock_table()
+        except ValueError as e:
+            print("Error:", e)
+
+    # ===============================
+    # 2. LIHAT STOK
+    # ===============================
+    elif pilihan == "2":
+        inventory.show_stock_table()
+
+    # ===============================
+    # 3. TAMBAH PRODUK
+    # ===============================
+    elif pilihan == "3":
+        nama = input("Nama produk: ")
+
+        print("\nPilih Kategori:")
+        print("1. Coffee")
+        print("2. Non-Coffee")
+        print("3. Pastry")
+
+        pil = input("Pilihan (1-3): ")
+        if pil == "1":
+            kategori = "coffee"
+        elif pil == "2":
+            kategori = "non-coffee"
+        elif pil == "3":
+            kategori = "pastry"
+        else:
+            print("Kategori tidak valid!")
+            continue
+
+        try:
+            harga = int(input("Harga: "))
+        except ValueError:
+            print("Harga harus angka!")
+            continue
+
+        recipe = {}
+        print("\nTambah Resep (contoh: Bubuk Kopi = 10 gram Espresso)")
+        print("Ketik 'stop' jika selesai")
+
+        while True:
+            data = input("> ").strip()
+            if data.lower() == "stop":
+                break
+
+            try:
+                bahan, detail = data.split("=")
+                parts = detail.strip().split()
+
+                recipe[bahan.strip()] = {
+                    "qty": int(parts[0]),
+                    "unit": parts[1],
+                    "note": parts[2] if len(parts) > 2 else "-"
+                }
+            except:
+                print("Format salah!")
+
+        product_manager.add_product(
+            ProductFactory.create_product(nama, kategori, harga, recipe)
+        )
+        print("Produk berhasil ditambahkan")
+
+    # ===============================
+    # 4. LIHAT PRODUK
+    # ===============================
+    elif pilihan == "4":
+        product_manager.show_products()
+
+    # ===============================
+    # 5. CARI BAHAN
+    # ===============================
+    elif pilihan == "5":
+        nama = input("Nama bahan: ")
+        hasil = inventory.cari_bahan(nama)
+        if hasil:
+            print(f"Stok {nama}: {hasil['qty']} {hasil['unit']}")
+        else:
+            print("Bahan tidak ditemukan")
+
+    # ===============================
+    # 6. JUAL MENU
+    # ===============================
+    elif pilihan == "6":
+        product_manager.show_products()
+        try:
+            pilih = int(input("Pilih nomor menu: ")) - 1
+            product = product_manager.get_product_by_index(pilih)
+
+            if not product:
+                print("Menu tidak valid")
+                continue
+
+            product.show_recipe_table()
+
+            # cek & kurangi stok
+            for bahan, data in product.recipe.items():
+                inventory.use_stock(bahan, data["qty"])
+
+            print("\n Stok bahan telah diperbarui")
+            print(f"{product.name} BERHASIL DIJUAL | Rp{product.price}")
+
+        except StokTidakCukupError as e:
+            print("\n GAGAL MENJUAL PRODUK")
+            print("Alasan:", e)
+
+        except ValueError:
+            print("Input tidak valid")
+
+    # ===============================
+    # 7. HAPUS PRODUK
+    # ===============================
+    elif pilihan == "7":
+        nama = input("Nama produk yang ingin dihapus: ")
+        try:
+            product_manager.hapus_produk(nama)
+            print(f"Produk '{nama}' berhasil dihapus")
+        except ValueError as e:
+            print(e)
+
+    # ===============================
+    # 8. KELUAR
+    # ===============================
+    elif pilihan == "8":
+        print("Program selesai. Terima kasih")
+        break
+
+    else:
+        print("Menu tidak valid!")
