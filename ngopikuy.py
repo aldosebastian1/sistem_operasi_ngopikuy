@@ -7,6 +7,48 @@ def highlight_menu(func):
         return func(*args, **kwargs)
     return wrapper
 
+# =========================
+# CLASS PENJUALAN
+# =========================
+class Penjualan(Transaksi):
+    # Class penjualan Subclass dari Transaksi merepresentasikan satu transaksi penjualan ke customer
+
+    def __init__(self, id_transaksi, metode_bayar):
+        # Memanggil constructor Transaksi (inheritance)
+        super().__init__(id_transaksi)
+        self.total_harga = 0          # Menyimpan total harga penjualan
+        self.metode_bayar = metode_bayar  # Menyimpan metode pembayaran
+
+    def tambah_produk(self, produk, jumlah):
+        # Menambahkan produk yang dijual ke dalam transaksi
+        self.tambah_item({
+            "nama_produk": produk.nama_produk,
+            "harga": produk.harga,
+            "jumlah": jumlah
+        }, jumlah)
+
+    def hitung_total(self):
+        # Menghitung total harga dari seluruh produk yang dijual
+        self.total_harga = 0
+        for item in self.daftar_item:
+            self.total_harga += item["harga"] * item["jumlah"]
+        return self.total_harga
+
+    def cetak_struk(self):
+        # Menampilkan struk penjualan ke layar
+        print("\n===== STRUK PENJUALAN =====")
+        print(f"ID Transaksi : {self.id_transaksi}")
+        print(f"Tanggal      : {self.tanggal_transaksi}")
+        print("---------------------------")
+
+        for item in self.daftar_item:
+            print(f"{item['nama_produk']} x{item['jumlah']} "
+                  f"= Rp {item['harga'] * item['jumlah']}")
+
+        print("---------------------------")
+        print(f"Total Harga  : Rp {self.hitung_total()}")
+        print(f"Metode Bayar : {self.metode_bayar}")
+        print("===========================\n")
 
 # =========================
 # BASE PRODUCT (INHERITANCE)
