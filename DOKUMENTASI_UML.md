@@ -1,404 +1,167 @@
 # Dokumentasi Class Diagram UML - NGOPIKUY Coffee Shop
 
-## 📋 Ringkasan Sistem
+## Ringkasan Sistem
 
-Sistem Manajemen Coffee Shop "NGOPIKUY" menggunakan prinsip OOP dengan beberapa design pattern:
+Sistem POS konsol NGOPIKUY dibangun dengan OOP dan pola desain untuk modularitas dan konsistensi state.
 
-- **Inheritance** (Pewarisan)
-- **Singleton** (ManajemenPersediaan)
-- **Observer** (Notifikasi Stok)
-- **Strategy** (Status Stok)
-- **Factory** (ProductFactory)
+**Design Patterns**: Inheritance (Transaksi → Penjualan/Pembelian), Singleton (ManajemenPersediaan), Observer, Strategy, Factory, Iterator.
+
+**Fitur Inti**: Penjualan multi-item (ukuran/suhu/metode bayar), pembelian/restock 7 supplier, inventory real-time + audit log, antrian pesanan dengan status, laporan penjualan/pembelian/metode bayar/stok menipis, CRUD produk dengan resep.
 
 ---
 
-## 🎯 CLASS UTAMA UNTUK DIAGRAM UML
+## Fokus Class UML
 
-### **1. TRANSACTION HIERARCHY (Inheritance)**
+| Tipe        | Class               | Status         | Alasan                                                  |
+| ----------- | ------------------- | -------------- | ------------------------------------------------------- |
+| Child Class | Penjualan           | ✅ CLASS UTAMA | Dipakai langsung untuk transaksi penjualan              |
+| Child Class | Pembelian           | ✅ CLASS UTAMA | Dipakai langsung untuk transaksi pembelian              |
+| Singleton   | ManajemenPersediaan | ✅ CLASS UTAMA | Inventori tunggal, mengelola stok dan audit log         |
+| Base Class  | Transaksi           | ⚠️ SUPPORTING  | Abstrak untuk inheritance, tidak diinstansiasi langsung |
 
-```
-┌──────────────────┐
-│    Transaksi     │ (Base Class)
-├──────────────────┤
-│ - id_transaksi   │
-│ - tanggal        │
-│ - username       │
-│ - daftar_item[]  │
-├──────────────────┤
-│ + tambah_item()  │
-└──────────────────┘
-         △
-         │ inherits
-    ┌────┴─────┐
-    │           │
-┌───────────┐ ┌──────────────┐
-│ Penjualan │ │  Pembelian   │
-├───────────┤ ├──────────────┤
-│-metode_   │ │-kode_        │
-│  bayar    │ │  supplier    │
-│-status    │ │-total_beli   │
-│-waktu_    │ ├──────────────┤
-│  diseduh  │ │+ tambah_     │
-│-waktu_siap│ │  bahan()     │
-├───────────┤ │+ konfirmasi_ │
-│+ update_  │ │  pembelian() │
-│  status() │ └──────────────┘
-│+ hitung_  │
-│  subtotal │
-│+ cetak_   │
-│  struk()  │
-└───────────┘
-```
-
-**File Reference:** [ngopikuy.py](ngopikuy.py#L83-L201)
-
-| Class       | Type       | Deskripsi                                                                                  |
-| ----------- | ---------- | ------------------------------------------------------------------------------------------ |
-| `Transaksi` | Base Class | Kelas dasar untuk semua transaksi, menyimpan ID, tanggal, user, dan daftar item            |
-| `Penjualan` | Child      | Transaksi penjualan ke customer dengan tracking status (DIBUAT → DISEDUH → SIAP → DIAMBIL) |
-| `Pembelian` | Child      | Transaksi pembelian bahan baku dari supplier                                               |
+Class pendukung: `Observer`, `StatusStrategy`, `AuditLog` (implementasi pola).
 
 ---
 
-### **2. INVENTORY MANAGEMENT (Singleton + Pattern)**
+## Diagram UML (teks)
+
+### 1) Hierarki Transaksi
 
 ```
-┌─────────────────────────────┐
-│  ManajemenPersediaan        │ (Singleton)
-├─────────────────────────────┤
-│ - _instance (static)        │
-│ - stock {}                  │
-│ - alias {}                  │
-│ - audit_logs[]              │
-│ - observers[]               │
-│ - status_strategy           │
-├─────────────────────────────┤
-│ + __new__()                 │
-│ + add_stock()               │
-│ + use_stock()               │
-│ + cari_bahan()              │
-│ + show_stock_table()        │
-│ + tambah_observer()         │
-│ + _notify()                 │
-│ + __iter__()                │
-└─────────────────────────────┘
-        │ uses
-        ├─────────────────────┬───────────────────┐
-        │                     │                   │
-   ┌─────────────┐    ┌───────────────┐   ┌─────────────┐
-   │ Observer    │    │ StatusStrategy│   │  AuditLog   │
-   ├─────────────┤    ├───────────────┤   ├─────────────┤
-   │+ update()   │    │+ get_status() │   │- username   │
-   └─────────────┘    └───────────────┘   │- aksi       │
-        △                    △              │- bahan      │
-        │ implements         │ implements   │- jumlah     │
-   ┌─────────────────┐  ┌──────────────────┐ │- unit    │
-   │NotifikasiStok   │  │DefaultStatus     │ │- waktu    │
-   │                 │  │Strategy          │ └─────────────┘
-   └─────────────────┘  └──────────────────┘
+                  ┌──────────────────────────┐
+                  │    <<abstract>>          │
+                  │       Transaksi          │
+                  ├──────────────────────────┤
+                  │ - id_transaksi: str      │
+                  │ - tanggal_transaksi: str │
+                  │ - username: str          │
+                  │ - daftar_item: list      │
+                  ├──────────────────────────┤
+                  │ + tambah_item(item)      │
+                  └──────────────────────────┘
+                           △
+                           │
+              ┌────────────┴────────────┐
+              │                         │
+    ┌─────────────────────┐   ┌────────────────────┐
+    │     Penjualan       │   │     Pembelian      │
+    ├─────────────────────┤   ├────────────────────┤
+    │ - metode_bayar: str │   │ - kode_supplier: str│
+    │ - status: str       │   │ - total_beli: int   │
+    │ - waktu_*: datetime │   ├────────────────────┤
+    ├─────────────────────┤   │ + tambah_bahan()    │
+    │ + update_status()   │   │ + konfirmasi_       │
+    │ + hitung_subtotal() │   │   pembelian()       │
+    │ + hitung_ppn()      │   └────────────────────┘
+    │ + hitung_total_     │
+    │   dengan_ppn()      │
+    │ + cetak_struk()     │
+    └─────────────────────┘
 ```
 
-**File Reference:** [ngopikuy.py](ngopikuy.py#L222-L570)
+Sumber: [ngopikuy.py](ngopikuy.py#L1-L220)
 
-| Class                   | Type           | Deskripsi                                                                     |
-| ----------------------- | -------------- | ----------------------------------------------------------------------------- |
-| `ManajemenPersediaan`   | Singleton      | Mengelola stok bahan, menggunakan Singleton pattern agar hanya ada 1 instance |
-| `Observer`              | Interface/Base | Base class untuk observer pattern                                             |
-| `NotifikasiStok`        | Observer       | Implementasi observer untuk notifikasi stok yang menipis                      |
-| `StatusStrategy`        | Interface/Base | Base class untuk strategy pattern                                             |
-| `DefaultStatusStrategy` | Strategy       | Menentukan status stok: HABIS, MENIPIS, AMAN                                  |
-| `AuditLog`              | Data Class     | Mencatat setiap perubahan stok (TAMBAH/PAKAI)                                 |
-
----
-
-### **3. PRODUCT MANAGEMENT (Factory Pattern)**
+### 2) Inventory (Singleton + Observer + Strategy)
 
 ```
-┌──────────────────┐
-│    Product       │ (Base Class)
-├──────────────────┤
-│ - name           │
-│ - price          │
-│ - ingredients[]  │
-├──────────────────┤
-│ + get_resep()    │
-│ + get_harga()    │
-└──────────────────┘
-        △
-        │ inherits
-    ┌───┴────┬──────────┐
-    │        │          │
-┌──────────┐ ┌──────────┐ ┌──────────┐
-│ Coffee   │ │NonCoffee │ │ Pastry   │
-│Product   │ │Product   │ │Product   │
-└──────────┘ └──────────┘ └──────────┘
-
-┌──────────────────────┐
-│  ProductFactory      │ (Factory Pattern)
-├──────────────────────┤
-│ + create_product()   │
-│ + get_all_products() │
-└──────────────────────┘
-        │ creates
-        └──→ Product instances
-
-┌──────────────────────┐
-│  ProductManager      │
-├──────────────────────┤
-│ - daftar_produk[]    │
-├──────────────────────┤
-│ + tampilkan_menu()   │
-│ + cari_produk()      │
-│ + lihat_resep()      │
-└──────────────────────┘
+              ┌─────────────────────────────────────┐
+              │  <<singleton>> ManajemenPersediaan  │
+              ├─────────────────────────────────────┤
+              │ - _instance: static                 │
+              │ - stock, alias, audit_logs          │
+              │ - observers: list[Observer]         │
+              │ - status_strategy: StatusStrategy   │
+              ├─────────────────────────────────────┤
+              │ + add_stock(bahan, jumlah, unit)    │
+              │ + use_stock(bahan, jumlah)          │
+              │ + cari_bahan(nama)                  │
+              │ + get_status(jumlah)                │
+              │ + show_stock_table()                │
+              │ + show_audit_logs(limit)            │
+              │ + tambah_observer(obs)              │
+              └─────────────────────────────────────┘
+                    │ uses       │ uses        │ contains
+                    ▼            ▼             ▼
+        ┌────────────────┐  ┌────────────────┐  ┌─────────────────┐
+        │ <<interface>>  │  │ <<interface>>  │  │    AuditLog     │
+        │   Observer     │  │ StatusStrategy │  ├─────────────────┤
+        ├────────────────┤  ├────────────────┤  │- username: str  │
+        │+ update(msg)   │  │+ get_status(q) │  │- aksi: str      │
+        └────────────────┘  └────────────────┘  │- bahan: str     │
+               △                   △             │- jumlah: int    │
+               │ implements        │ implements  │- unit: str      │
+        ┌──────────────┐   ┌─────────────────┐   │- waktu: str     │
+        │NotifikasiStok│   │DefaultStatus    │   └─────────────────┘
+        └──────────────┘   │Strategy         │
+                           └─────────────────┘
 ```
 
-**File Reference:** [ngopikuy.py](ngopikuy.py#L641-L800)
+Catatan: `use_stock` dapat melempar `StokTidakCukupError` bila stok kurang.
+Sumber: [ngopikuy.py](ngopikuy.py#L221-L570)
 
-| Class              | Type       | Deskripsi                                     |
-| ------------------ | ---------- | --------------------------------------------- |
-| `Product`          | Base Class | Kelas dasar untuk semua produk                |
-| `CoffeeProduct`    | Child      | Produk minuman kopi                           |
-| `NonCoffeeProduct` | Child      | Produk minuman non-kopi                       |
-| `PastryProduct`    | Child      | Produk makanan/pastry                         |
-| `ProductFactory`   | Factory    | Factory pattern untuk membuat instance produk |
-| `ProductManager`   | Manager    | Mengelola daftar produk dan menampilkan menu  |
-
----
-
-### **4. QUEUE MANAGEMENT**
+### 3) Relasi Utama (ringkas)
 
 ```
-┌──────────────────────┐
-│  AntrianPesanan      │ (Queue Data Structure)
-├──────────────────────┤
-│ - antrian []         │
-│ - counter_id         │
-├──────────────────────┤
-│ + tambah_pesanan()   │
-│ + ambil_pesanan()    │
-│ + tampilkan_antrian()│
-│ + ukuran()           │
-└──────────────────────┘
-        │ uses
-        └──→ Penjualan
-```
-
-**File Reference:** [ngopikuy.py](ngopikuy.py#L571-L640)
-
-| Class            | Deskripsi                                                  |
-| ---------------- | ---------------------------------------------------------- |
-| `AntrianPesanan` | Mengelola antrian pesanan dengan implementasi queue (FIFO) |
-
----
-
-### **5. TRANSACTION & REPORT MANAGEMENT**
-
-```
-┌──────────────────────────┐
-│  TransaksiManager        │
-├──────────────────────────┤
-│ - riwayat_penjualan[]    │
-│ - riwayat_pembelian[]    │
-├──────────────────────────┤
-│ + tambah_penjualan()     │
-│ + tambah_pembelian()     │
-│ + tampilkan_riwayat_     │
-│   penjualan()            │
-│ + tampilkan_riwayat_     │
-│   pembelian()            │
-└──────────────────────────┘
-        │ contains
-        ├──→ Penjualan[]
-        └──→ Pembelian[]
-
-┌──────────────────────────┐
-│  LaporanManager          │ (Static Methods)
-├──────────────────────────┤
-│ + laporan_penjualan_     │
-│   harian()               │
-│ + laporan_stok_menipis() │
-└──────────────────────────┘
-        │ uses
-        ├──→ TransaksiManager
-        └──→ ManajemenPersediaan
-```
-
-**File Reference:** [ngopikuy.py](ngopikuy.py#L804-L891)
-
-| Class              | Deskripsi                                                 |
-| ------------------ | --------------------------------------------------------- |
-| `TransaksiManager` | Mengelola riwayat semua transaksi (penjualan & pembelian) |
-| `LaporanManager`   | Membuat laporan analisis penjualan dan stok               |
-
----
-
-### **6. STATUS & EXCEPTION**
-
-```
-┌──────────────────────┐
-│  StatusPesanan       │ (Constants)
-├──────────────────────┤
-│ + DIBUAT             │
-│ + DISEDUH            │
-│ + SIAP               │
-│ + DIAMBIL            │
-│ + BATAL              │
-└──────────────────────┘
-
-┌──────────────────────┐
-│StokTidakCukupError   │ (Exception)
-├──────────────────────┤
-│ inherits from        │
-│ Exception            │
-└──────────────────────┘
-```
-
-**File Reference:** [ngopikuy.py](ngopikuy.py#L204-L220)
-
----
-
-## 📊 RELATIONSHIP DIAGRAM
-
-### **Associations & Dependencies:**
-
-```
-┌────────────────────────────────────────────────────────────┐
-│                      SISTEM NGOPIKUY                        │
-└────────────────────────────────────────────────────────────┘
-                    │
-        ┌───────────┼───────────┐
-        │           │           │
-        ▼           ▼           ▼
-   Penjualan   Pembelian   AntrianPesanan
-        │           │           │
-        ├─────────┬─┘           │
-        │         │             │
-        └─────────┼─────────────┘
-                  │
-        ┌─────────┴─────────┐
-        │                   │
-        ▼                   ▼
-TransaksiManager    ProductManager
-        │                   │
-        ├───────────┬───────┘
-        │           │
-        ▼           ▼
-   LaporanManager  ManajemenPersediaan
-        │                   │
-        └───────────┬───────┘
-                    │
-            ┌───────┴───────┐
-            │               │
-            ▼               ▼
-        Observer        Strategy
-            │               │
-            ▼               ▼
-    NotifikasiStok  DefaultStatusStrategy
+Transaksi △── Penjualan
+Transaksi △── Pembelian
+Penjualan ──uses──▶ ManajemenPersediaan
+Pembelian ──uses──▶ ManajemenPersediaan
+ManajemenPersediaan ◆── AuditLog (composition)
+Observer ◁── NotifikasiStok
+StatusStrategy ◁── DefaultStatusStrategy
 ```
 
 ---
 
-## 🔑 KEY DESIGN PATTERNS DIGUNAKAN
+## Detail Kelas Inti
 
-| Pattern         | Class                                                  | Fungsi                                       |
-| --------------- | ------------------------------------------------------ | -------------------------------------------- |
-| **Inheritance** | Transaksi → Penjualan/Pembelian                        | Polymorphism untuk berbagai tipe transaksi   |
-| **Inheritance** | Product → CoffeeProduct/NonCoffeeProduct/PastryProduct | Polymorphism untuk berbagai tipe produk      |
-| **Singleton**   | ManajemenPersediaan                                    | Hanya ada 1 instance untuk manajemen stok    |
-| **Observer**    | NotifikasiStok extends Observer                        | Notifikasi otomatis saat stok berubah        |
-| **Strategy**    | DefaultStatusStrategy implements StatusStrategy        | Fleksibilitas untuk mengubah logika status   |
-| **Factory**     | ProductFactory                                         | Membuat instance produk dengan cara terpusat |
-| **Manager**     | TransaksiManager, ProductManager, LaporanManager       | Centralized management untuk berbagai entity |
+**Penjualan (CLASS UTAMA)**
 
----
+- Atribut: id_transaksi, metode_bayar, status, waktu_dibuat/diseduh/siap/selesai, daftar_item
+- Method: update_status, tambah_produk, hitung_subtotal, hitung_ppn, hitung_total_dengan_ppn, cetak_struk
+- Logika: ukuran S/M/L (adjust harga), suhu panas/dingin, metode bayar Tunai/Debit/QRIS, auto-kurangi stok, PPN 11%, masuk antrian pesanan
 
-## 📌 ATTRIBUTE & METHOD DETAILS
+**Pembelian (CLASS UTAMA)**
 
-### **Penjualan Class (Most Important)**
+- Atribut: id_transaksi, kode_supplier, total_beli, daftar_item
+- Method: tambah_bahan, konfirmasi_pembelian
+- Logika: katalog 7 supplier, auto-update stok, multi-item per transaksi
 
-```
-Attributes:
-  - id_transaksi: str
-  - metode_bayar: str (cash/card/transfer)
-  - status: str (StatusPesanan enum)
-  - waktu_dibuat, waktu_diseduh, waktu_siap, waktu_selesai: datetime
-  - daftar_item: list[dict]
+**ManajemenPersediaan (CLASS UTAMA, Singleton)**
 
-Methods:
-  - update_status(status_baru, username): void
-  - tambah_produk(produk: Product, jumlah: int): void
-  - hitung_subtotal(): int
-  - hitung_ppn(): int
-  - hitung_total_dengan_ppn(): int
-  - cetak_struk(): void
-```
+- Atribut: stock, alias, audit_logs, observers, status_strategy
+- Method: add_stock, use_stock, cari_bahan, get_status, show_stock_table, show_audit_logs, tambah_observer
+- Logika: konversi kg→gram, alias nama bahan, audit trail, observer notif MENIPIS/HABIS, strategy status stok
 
-### **ManajemenPersediaan Class (Most Important)**
+**Transaksi (Base, Supporting)**
 
-```
-Singleton Pattern:
-  - _instance: static
-
-Attributes:
-  - stock: dict {nama_bahan: {qty, unit}}
-  - alias: dict {alias_name: actual_name}
-  - audit_logs: list[AuditLog]
-  - observers: list[Observer]
-
-Methods:
-  - add_stock(bahan, jumlah, username, unit): void
-  - use_stock(bahan, jumlah, username): void
-  - cari_bahan(nama): dict
-  - get_status(jumlah): str
-  - show_stock_table(): void
-  - tambah_observer(observer): void
-```
-
-### **ProductManager Class**
-
-```
-Attributes:
-  - daftar_produk: list[Product]
-
-Methods:
-  - tampilkan_menu(): void
-  - cari_produk(nama): Product
-  - lihat_resep(produk_name): void
-```
+- Atribut: id_transaksi, tanggal_transaksi, username, daftar_item
+- Method: tambah_item
+- Peran: base/abstrak, tidak diinstansiasi langsung
 
 ---
 
-## 🎨 UML DIAGRAM SUMMARY
+## Panduan Gambar Diagram (ringkas)
 
-Untuk membuat diagram UML di tool seperti:
-
-- **Lucidchart**
-- **Draw.io** (diagrams.net)
-- **PlantUML**
-- **StarUML**
-- **ArgoUML**
-
-**Gunakan informasi:**
-
-1. **Class Boxes** dengan 3 section (Name, Attributes, Methods)
-2. **Arrows untuk Inheritance**: Segitiga putih menunjuk ke parent
-3. **Arrows untuk Composition**: Diamond hitam untuk "uses"
-4. **Arrows untuk Association**: Garis biasa untuk relationships
-5. **Multiplicity**: \* untuk many, 1 untuk one
+1. Empat kelas utama: Transaksi (<<abstract>>), Penjualan, Pembelian, ManajemenPersediaan (<<singleton>>)
+2. Generalization: Penjualan → Transaksi, Pembelian → Transaksi (segitiga putih ke parent)
+3. Dependency: Penjualan/Pembelian → ManajemenPersediaan (panah putus-putus <<uses>>)
+4. Composition: ManajemenPersediaan ◆→ AuditLog (0..\*)
+5. Implementasi: Observer ◁── NotifikasiStok, StatusStrategy ◁── DefaultStatusStrategy
 
 ---
 
-## 📝 NOTES UNTUK DOKUMENTASI
+## Ringkasan Pattern vs Kelas
 
-- **Singleton Pattern**: ManajemenPersediaan hanya boleh ada 1 instance di seluruh aplikasi
-- **Observer Pattern**: Sistem akan notify semua observers saat ada perubahan stok
-- **Strategy Pattern**: Status stok bisa diubah dengan mengimplementasi interface StatusStrategy
-- **Inheritance Chain**: Penjualan & Pembelian mewarisi dari Transaksi base class
-- **Queue Implementation**: AntrianPesanan menggunakan FIFO (First In First Out)
+| Pattern     | Kelas                                                 | Catatan                       |
+| ----------- | ----------------------------------------------------- | ----------------------------- |
+| Singleton   | ManajemenPersediaan                                   | Instance tunggal inventory    |
+| Inheritance | Transaksi → Penjualan, Pembelian                      | Reuse atribut/metode dasar    |
+| Observer    | Observer, NotifikasiStok                              | Notifikasi stok MENIPIS/HABIS |
+| Strategy    | StatusStrategy, DefaultStatusStrategy                 | Logika status stok fleksibel  |
+| Factory     | ProductFactory                                        | Pembuatan produk terpusat     |
+| Iterator    | ManajemenPersediaan.**iter**, ProductManager.**iter** | Iterasi stok/produk           |
 
 ---
 
-**Generated for**: UTS - Pemrograman Berbasis Object  
-**Program**: Sistem Manajemen Coffee Shop NGOPIKUY  
-**Date**: January 2026
+Rujukan kode: [ngopikuy.py](ngopikuy.py)
