@@ -312,223 +312,189 @@ class ManajemenPersediaan:
         print("======================================================")
 
 
-from inventory import ManajemenPersediaan, StokTidakCukupError
-from product import ProductManager, ProductFactory
+# =========================
+# EXCEPTION
+# =========================
+class StokTidakCukupError(Exception):
+    pass
 
 
-# ===============================
-# INISIALISASI (Singleton Inventory)
-# ===============================
-inventory = ManajemenPersediaan()
-product_manager = ProductManager()
+# =========================
+# OBSERVER
+# =========================
+class Observer:
+    def update(self, message):
+        pass
 
 
-# ===============================
-# CONTOH PRODUK & RESEP (AUTO)
-# ===============================
-latte_recipe = {
-    "Bubuk Kopi": {"qty": 18, "unit": "gram", "note": "Espresso"},
-    "Susu Full Cream": {"qty": 150, "unit": "ml", "note": "Steamed"},
-    "Air": {"qty": 30, "unit": "ml", "note": "Hot"},
-    "Cup": {"qty": 1, "unit": "pcs", "note": "Packaging"}
-}
-
-americano_recipe = {
-    "Bubuk Kopi": {"qty": 18, "unit": "gram", "note": "Espresso"},
-    "Air": {"qty": 180, "unit": "ml", "note": "Hot Water"},
-    "Cup": {"qty": 1, "unit": "pcs", "note": "Packaging"}
-}
-
-taro_latte_recipe = {
-    "Taro Powder": {"qty": 25, "unit": "gram", "note": "Flavor"},
-    "Susu Full Cream": {"qty": 150, "unit": "ml", "note": "Milk Base"},
-    "Cup": {"qty": 1, "unit": "pcs", "note": "Packaging"}
-}
-
-croissant_recipe = {
-    "Tepung Terigu": {"qty": 120, "unit": "gram", "note": "Dough"},
-    "Mentega": {"qty": 30, "unit": "gram", "note": "Butter"}
-}
-
-# pakai FACTORY
-product_manager.add_product(ProductFactory.create_product(
-    "Latte", "coffee", 22000, latte_recipe
-))
-product_manager.add_product(ProductFactory.create_product(
-    "Americano", "coffee", 20000, americano_recipe
-))
-product_manager.add_product(ProductFactory.create_product(
-    "Taro Latte", "non-coffee", 23000, taro_latte_recipe
-))
-product_manager.add_product(ProductFactory.create_product(
-    "Croissant", "pastry", 15000, croissant_recipe
-))
+class NotifikasiStok(Observer):
+    def update(self, message):
+        print(f"[NOTIFIKASI] {message}")
 
 
-# ===============================
-# TAMPILKAN STOK AWAL
-# ===============================
-print("\nSTOK AWAL BAHAN")
-inventory.show_stock_table()
+# =========================
+# STRATEGY STATUS STOK
+# =========================
+class StatusStrategy:
+    def get_status(self, jumlah):
+        pass
 
 
-# ===============================
-# MENU UTAMA
-# ===============================
-def tampilkan_menu():
-    print("\n=== SISTEM COFFEE SHOP ===")
-    print("1. Tambah / Restock Bahan")
-    print("2. Lihat Stok Bahan")
-    print("3. Tambah Produk")
-    print("4. Lihat Daftar Produk")
-    print("5. Cari Bahan")
-    print("6. Jual Menu")
-    print("7. Hapus Produk")
-    print("8. Keluar")
+class DefaultStatusStrategy(StatusStrategy):
+    def get_status(self, jumlah):
+        if jumlah <= 0:
+            return "HABIS"
+        elif jumlah <= 10:
+            return "MENIPIS"
+        return "AMAN"
 
 
-# ===============================
-# LOOP PROGRAM
-# ===============================
-while True:
-    tampilkan_menu()
-    pilihan = input("Pilih menu (1-8): ")
-    
-    # ===============================
-    # 1. RESTOCK
-    # ===============================
-    if pilihan == "1":
-        try:
-            bahan = input("Nama bahan: ")
-            jumlah = int(input("Jumlah: "))
-            inventory.add_stock(bahan, jumlah)
-            inventory.show_stock_table()
-        except ValueError as e:
-            print("Error:", e)
+# =========================
+# INVENTORY (SINGLETON)
+# =========================
+class ManajemenPersediaan:
+    _instance = None
 
-    # ===============================
-    # 2. LIHAT STOK
-    # ===============================
-    elif pilihan == "2":
-        inventory.show_stock_table()
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(ManajemenPersediaan, cls).__new__(cls)
+        return cls._instance
 
-    # ===============================
-    # 3. TAMBAH PRODUK
-    # ===============================
-    elif pilihan == "3":
-        nama = input("Nama produk: ")
+    def __init__(self):
+        if hasattr(self, "_initialized"):
+            return
+        self._initialized = True
 
-        print("\nPilih Kategori:")
-        print("1. Coffee")
-        print("2. Non-Coffee")
-        print("3. Pastry")
+        # =========================
+        # STOK AWAL BAHAN
+        # =========================
+        self.stock = {
+            "Bubuk Kopi": {"qty": 10000, "unit": "gram"},
+            "Air": {"qty": 200000, "unit": "ml"},
+            "Susu Full Cream": {"qty": 100000, "unit": "ml"},
+            "Susu Oat": {"qty": 30000, "unit": "ml"},
+            "Gula Aren": {"qty": 5000, "unit": "gram"},
+            "Caramel Syrup": {"qty": 5000, "unit": "ml"},
+            "Coklat Bubuk": {"qty": 3000, "unit": "gram"},
+            "Matcha Powder": {"qty": 2000, "unit": "gram"},
+            "Tepung Terigu": {"qty": 10000, "unit": "gram"},
+            "Mentega": {"qty": 5000, "unit": "gram"},
+            "Cup": {"qty": 500, "unit": "pcs"},
+            "Sedotan Hitam": {"qty": 500, "unit": "pcs"}
+        }
 
-        pil = input("Pilihan (1-3): ")
-        if pil == "1":
-            kategori = "coffee"
-        elif pil == "2":
-            kategori = "non-coffee"
-        elif pil == "3":
-            kategori = "pastry"
-        else:
-            print("Kategori tidak valid!")
-            continue
+        # =========================
+        # ALIAS
+        # =========================
+        self.alias = {
+            "Susu": "Susu Full Cream",
+            "Kopi": "Bubuk Kopi",
+            "Cup Plastik": "Cup",
+            "Sedotan": "Sedotan Hitam"
+        }
 
-        try:
-            harga = int(input("Harga: "))
-        except ValueError:
-            print("Harga harus angka!")
-            continue
+        # =========================
+        # LOG & OBSERVER
+        # =========================
+        self.log_tambah = []
+        self.observers = []
 
-        recipe = {}
-        print("\nTambah Resep (contoh: Bubuk Kopi = 10 gram Espresso)")
-        print("Ketik 'stop' jika selesai")
+        # =========================
+        # STRATEGY
+        # =========================
+        self.status_strategy = DefaultStatusStrategy()
 
-        while True:
-            data = input("> ").strip()
-            if data.lower() == "stop":
-                break
+    # =========================
+    # ITERATOR
+    # =========================
+    def __iter__(self):
+        return iter(self.stock.items())
 
-            try:
-                bahan, detail = data.split("=")
-                parts = detail.strip().split()
+    # =========================
+    # OBSERVER METHOD
+    # =========================
+    def tambah_observer(self, observer: Observer):
+        self.observers.append(observer)
 
-                recipe[bahan.strip()] = {
-                    "qty": int(parts[0]),
-                    "unit": parts[1],
-                    "note": parts[2] if len(parts) > 2 else "-"
-                }
-            except:
-                print("Format salah!")
+    def _notify(self, message):
+        for obs in self.observers:
+            obs.update(message)
 
-        product_manager.add_product(
-            ProductFactory.create_product(nama, kategori, harga, recipe)
-        )
-        print("Produk berhasil ditambahkan")
+    # =========================
+    # NORMALISASI NAMA
+    # =========================
+    def _normalize_bahan(self, bahan):
+        bahan = bahan.strip()
+        return self.alias.get(bahan, bahan)
 
-    # ===============================
-    # 4. LIHAT PRODUK
-    # ===============================
-    elif pilihan == "4":
-        product_manager.show_products()
+    # =========================
+    # RESTOCK
+    # =========================
+    def add_stock(self, bahan, jumlah):
+        bahan = self._normalize_bahan(bahan)
 
-    # ===============================
-    # 5. CARI BAHAN
-    # ===============================
-    elif pilihan == "5":
-        nama = input("Nama bahan: ")
-        hasil = inventory.cari_bahan(nama)
-        if hasil:
-            print(f"Stok {nama}: {hasil['qty']} {hasil['unit']}")
-        else:
-            print("Bahan tidak ditemukan")
+        if jumlah <= 0:
+            raise ValueError("Jumlah stok harus lebih dari 0")
 
-    # ===============================
-    # 6. JUAL MENU
-    # ===============================
-    elif pilihan == "6":
-        product_manager.show_products()
-        try:
-            pilih = int(input("Pilih nomor menu: ")) - 1
-            product = product_manager.get_product_by_index(pilih)
+        if bahan not in self.stock:
+            if "Powder" in bahan or "Bubuk" in bahan:
+                unit = "gram"
+            elif "Syrup" in bahan or "Susu" in bahan or "Air" in bahan:
+                unit = "ml"
+            else:
+                unit = "pcs"
 
-            if not product:
-                print("Menu tidak valid")
-                continue
+            self.stock[bahan] = {"qty": 0, "unit": unit}
 
-            product.show_recipe_table()
+        self.stock[bahan]["qty"] += jumlah
+        self.log_tambah.append(f"+{jumlah} {self.stock[bahan]['unit']} {bahan}")
+        self._notify("Stok bahan telah diperbarui")
 
-            # cek & kurangi stok
-            for bahan, data in product.recipe.items():
-                inventory.use_stock(bahan, data["qty"])
+    # =========================
+    # PAKAI STOK
+    # =========================
+    def use_stock(self, bahan, jumlah):
+        bahan = self._normalize_bahan(bahan)
 
-            print("\n Stok bahan telah diperbarui")
-            print(f"{product.name} BERHASIL DIJUAL | Rp{product.price}")
+        if bahan not in self.stock:
+            raise StokTidakCukupError(f"Bahan '{bahan}' tidak tersedia")
 
-        except StokTidakCukupError as e:
-            print("\n GAGAL MENJUAL PRODUK")
-            print("Alasan:", e)
+        if jumlah <= 0:
+            raise ValueError("Jumlah pemakaian harus lebih dari 0")
 
-        except ValueError:
-            print("Input tidak valid")
+        if self.stock[bahan]["qty"] < jumlah:
+            raise StokTidakCukupError(
+                f"Stok {bahan} tidak cukup (tersedia {self.stock[bahan]['qty']})"
+            )
 
-    # ===============================
-    # 7. HAPUS PRODUK
-    # ===============================
-    elif pilihan == "7":
-        nama = input("Nama produk yang ingin dihapus: ")
-        try:
-            product_manager.hapus_produk(nama)
-            print(f"Produk '{nama}' berhasil dihapus")
-        except ValueError as e:
-            print(e)
+        self.stock[bahan]["qty"] -= jumlah
 
-    # ===============================
-    # 8. KELUAR
-    # ===============================
-    elif pilihan == "8":
-        print("Program selesai. Terima kasih")
-        break
+        status = self.get_status(self.stock[bahan]["qty"])
+        if status in ["MENIPIS", "HABIS"]:
+            self._notify(f"Stok {bahan} {status}")
 
-    else:
-        print("Menu tidak valid!")
+    # =========================
+    # STATUS (STRATEGY)
+    # =========================
+    def get_status(self, jumlah):
+        return self.status_strategy.get_status(jumlah)
+
+    # =========================
+    # TABEL STOK (FIXED & RAPI)
+    # =========================
+    def show_stock_table(self):
+        print("\n===================== STOK BAHAN =====================")
+        print("| No | Nama Bahan           | Jumlah      | Satuan | Status  |")
+        print("-------------------------------------------------------")
+
+        for i, (bahan, data) in enumerate(self.stock.items(), start=1):
+            jumlah = data["qty"]
+            satuan = data["unit"]
+            status = self.get_status(jumlah)
+
+            print(
+                f"| {i:<2} | {bahan:<20} | "
+                f"{jumlah:>11} | {satuan:^6} | {status:^7} |"
+            )
+
+        print("======================================================")
