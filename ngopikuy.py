@@ -51,6 +51,33 @@ class Penjualan(Transaksi):
         print("===========================\n")
 
 # =========================
+# CLASS PEMBELIAN
+# =========================        
+class Pembelian(Transaksi):
+    # Class Pembelian Subclass dari Transaksi Merepresentasikan transaksi pembelian bahan baku dari supplier
+
+    def __init__(self, id_transaksi, kode_supplier):
+        # Memanggil constructor Transaksi (inheritance)
+        super().__init__(id_transaksi)
+        self.total_beli = 0           # Menyimpan total pembelian
+        self.kode_supplier = kode_supplier  # Menyimpan kode supplier
+
+    def tambah_bahan(self, bahan_baku, jumlah, harga_satuan):
+        # Menambahkan bahan baku yang dibeli ke dalam transaksi
+        self.tambah_item({
+            "nama_bahan": bahan_baku.nama_bahan,
+            "jumlah": jumlah,
+            "harga_satuan": harga_satuan
+        }, jumlah)
+
+    def konfirmasi_pembelian(self):
+        # Menghitung total biaya pembelian bahan baku
+        self.total_beli = 0
+        for item in self.daftar_item:
+            self.total_beli += item["jumlah"] * item["harga_satuan"]
+        return self.total_beli
+
+# =========================
 # BASE PRODUCT (INHERITANCE)
 # =========================
 class Product:
